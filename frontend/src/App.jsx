@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { OrderFormPage } from './pages/OrderFormPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
 import './index.css';
 
 function Header() {
@@ -26,6 +28,12 @@ function Header() {
                 className="text-muted-foreground hover:text-foreground"
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/orders/new"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                New order
               </Link>
               <span className="hidden font-mono text-[10px] normal-case text-muted-foreground sm:inline">
                 {user.email}
@@ -77,6 +85,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders/new"
+        element={
+          <ProtectedRoute>
+            <OrderFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders/:id/edit"
+        element={
+          <ProtectedRoute>
+            <OrderFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders/:id"
+        element={
+          <ProtectedRoute>
+            <OrderDetailPage />
           </ProtectedRoute>
         }
       />

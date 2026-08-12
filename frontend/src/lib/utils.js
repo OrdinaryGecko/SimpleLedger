@@ -25,3 +25,16 @@ export const dateTime = (iso) =>
     hour12: true,
     timeZone: 'Asia/Kolkata',
   });
+
+export const STATUS_LABEL = {
+  pending: 'Pending',
+  partially_paid: 'Partially paid',
+  paid: 'Paid',
+  overdue: 'Overdue',
+};
+
+export const lineAmount = (item) =>
+  Math.round((item.quantity * item.unit_price + Number.EPSILON) * 100) / 100;
+
+export const subtotal = (items) =>
+  Math.round((items.reduce((s, i) => s + lineAmount(i), 0) + Number.EPSILON) * 100) / 100;
