@@ -46,7 +46,65 @@ class Order < ApplicationRecord
     end
   end
 
+  def add_payment(amount:, kind: "payment", paid_date: Date.current, note: nil)
+    with_lock do
+      result = validate_payment(amount, kind)
+      return result if result[:error]
+
+      payment = payments.build(
+        kind: kind,
+        amount: amount,
+        paid_date: paid_date,
+        note: note
+      )
+
+      from_status = derive_status
+
+      if payment.save
+        audit_logs.create!(
+          event: "#{kind}_recorded",
+          from_status: from_status,
+          to_status: derive_status,
+          details: {
+            payment_id: payment.id,
+            amount: amount,
+            kind: kind
+          }
+        )
+        { success: true, payment: payment }
+      else
+        { error: payment.errors.full_messages.join(", ") }
+      end
+    end
+  end
+
   private
+
+  def validate_payment(amount, kind)
+    if amount < 0.01
+      return { error: "Amount must be at least 0.01" }
+    end
+
+    if kind == "refund"
+      unless derive_status == "paid"
+        return { error: "Refunds are only allowed for fully paid orders." }
+      end
+      max_refund = [amount_paid - total_refunded, 0].max
+      if amount > max_refund
+        return { error: "Refund exceeds the amount paid. The maximum allowed refund is ₹#{'%.2f' % max_refund}." }
+      end
+    else
+      max_payment = [total_amount - amount_paid, 0].max
+      if max_payment <= 0
+        return { error: "This order is already fully paid, so no further payment can be recorded." }
+      end
+      if amount > max_payment
+        return { error: "Payment exceeds the amount due. The maximum allowed payment is ₹#{'%.2f' % max_payment}." }
+      end
+    end
+
+    {}
+  end
 
   def compute_totals
     self.subtotal = line_items.sum { |li| li.quantity * li.unit_price }
