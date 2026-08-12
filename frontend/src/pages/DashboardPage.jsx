@@ -3,12 +3,10 @@ import { Link } from 'react-router-dom';
 import { ordersApi, exportsApi } from '../lib/api';
 import { money, shortDate, STATUS_LABEL } from '../lib/utils';
 import { Button, Notice, Panel, Stat, StatusTag } from '../components/ui-kit';
-import { useAuth } from '../contexts/AuthContext';
 
 const FILTERS = ['all', 'pending', 'partially_paid', 'paid', 'overdue'];
 
 export function DashboardPage() {
-  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,9 +47,6 @@ export function DashboardPage() {
     <div className="space-y-10">
       <div>
         <h1 className="text-3xl font-medium tracking-tight">Dashboard</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Welcome back, {user?.email}
-        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
