@@ -1,0 +1,18 @@
+# Backend
+backend/log/
+backend/tmp/
+backend/storage/
+backend/.env
+backend/config/master.key
+backend/.kamal/secrets
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
