@@ -82,7 +82,7 @@ export function OrderDetailPage() {
   };
 
   const maxAmount = kind === 'refund'
-    ? Math.max(order?.amount_paid || 0, 0)
+    ? Math.max((order?.amount_paid || 0) - (order?.total_refunded || 0), 0)
     : Math.max(order?.amount_due || 0, 0);
 
   if (loading) {
@@ -158,29 +158,30 @@ export function OrderDetailPage() {
             <dl className="border-t border-border">
               {[
                 ['Total', money(order.total)],
-                ['Paid (net of refunds)', money(order.amount_paid)],
+                ['Paid', money(order.amount_paid)],
+                order.total_refunded > 0 ? ['Refunded', money(order.total_refunded)] : null,
                 ['Balance due', money(order.amount_due)],
-              ].map(([k, v], idx) => (
+              ].filter(Boolean).map(([k, v], idx, arr) => (
                 <div
                   key={k}
                   className="flex items-center justify-between px-5 py-3 text-sm last:border-t last:border-border"
                 >
                   <dt
                     className={
-                      idx === 2
+                      idx === arr.length - 1
                         ? 'text-[10px] uppercase tracking-[0.2em]'
                         : 'text-muted-foreground'
                     }
                   >
                     {k}
                   </dt>
-                  <dd className={`font-mono tabular-nums ${idx === 2 ? 'text-lg' : ''}`}>{v}</dd>
+                  <dd className={`font-mono tabular-nums ${idx === arr.length - 1 ? 'text-lg' : ''}`}>{v}</dd>
                 </div>
               ))}
             </dl>
           </Panel>
 
-          <Panel title="Payment history">
+          <Panel title="Payments">
             {order.payments.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-muted-foreground">
                 No payments recorded yet.
@@ -191,13 +192,10 @@ export function OrderDetailPage() {
                   <li key={p.id} className="flex items-center justify-between gap-4 px-5 py-4 text-sm">
                     <span className="font-mono text-muted-foreground">{shortDate(p.paid_on)}</span>
                     <span className="flex-1 truncate text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      {p.kind === 'refund' ? 'Refund' : 'Payment'}
+                      Payment
                       {p.note ? ` · ${p.note}` : ''}
                     </span>
-                    <span
-                      className={`font-mono tabular-nums ${p.kind === 'refund' ? 'text-destructive' : ''}`}
-                    >
-                      {p.kind === 'refund' ? '-' : ''}
+                    <span className="font-mono tabular-nums">
                       {money(p.amount)}
                     </span>
                   </li>
@@ -205,6 +203,25 @@ export function OrderDetailPage() {
               </ul>
             )}
           </Panel>
+
+          {order.refunds.length > 0 && (
+            <Panel title="Refunds">
+              <ul className="divide-y divide-border">
+                {order.refunds.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-4 px-5 py-4 text-sm">
+                    <span className="font-mono text-muted-foreground">{shortDate(r.paid_on)}</span>
+                    <span className="flex-1 truncate text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Refund
+                      {r.note ? ` · ${r.note}` : ''}
+                    </span>
+                    <span className="font-mono tabular-nums text-destructive">
+                      -{money(r.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
 
           <Panel title="Audit log">
             {auditLogs.length === 0 ? (
@@ -290,7 +307,9 @@ export function OrderDetailPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 {kind === 'refund'
-                  ? `Up to ${money(order.amount_paid)} can be refunded.`
+                  ? order.status !== 'paid'
+                    ? 'Refunds are only allowed for fully paid orders.'
+                    : `Up to ${money(maxAmount)} can be refunded.`
                   : order.amount_due === 0
                     ? 'This order is fully settled.'
                     : `${money(order.amount_due)} remaining.`}

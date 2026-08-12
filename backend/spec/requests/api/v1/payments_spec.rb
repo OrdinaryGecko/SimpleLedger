@@ -24,21 +24,19 @@ RSpec.describe "Api::V1::Payments", type: :request do
         expect(response).to have_http_status(:created)
 
         order.reload
-        paid = order.payments.where(kind: "payment").sum(:amount)
-        expect(paid).to eq(50)
+        expect(order.amount_paid).to eq(50)
       end
 
-      it "increases amount due when refund is recorded" do
-        post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
+      it "amount_paid is not affected by refunds" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 20, kind: "refund" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        paid = order.payments.where(kind: "payment").sum(:amount)
-        refunded = order.payments.where(kind: "refund").sum(:amount)
-        expect(paid - refunded).to eq(30)
+        expect(order.amount_paid).to eq(100)
+        expect(order.total_refunded).to eq(20)
       end
     end
 
@@ -75,18 +73,18 @@ RSpec.describe "Api::V1::Payments", type: :request do
         expect(order.derive_status).to eq("overdue")
       end
 
-      it "derives pending after full refund" do
-        post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
+      it "status is not changed by refund" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.derive_status).to eq("partially_paid")
+        expect(order.derive_status).to eq("paid")
 
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "refund" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.derive_status).to eq("pending")
+        expect(order.derive_status).to eq("paid")
       end
 
       it "derives paid even when past due date" do
@@ -97,6 +95,76 @@ RSpec.describe "Api::V1::Payments", type: :request do
 
         order.reload
         expect(order.derive_status).to eq("paid")
+      end
+    end
+
+    context "refund rules" do
+      let(:order) { create(:order, :with_line_items, user: user, item_price: 100, item_quantity: 1) }
+
+      it "rejects refund for partially paid order" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 20, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        json = JSON.parse(response.body)
+        expect(json["error"]).to include("only allowed for fully paid orders")
+      end
+
+      it "rejects refund for unpaid order" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 20, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        json = JSON.parse(response.body)
+        expect(json["error"]).to include("only allowed for fully paid orders")
+      end
+
+      it "allows refund for fully paid order" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 20, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:created)
+      end
+
+      it "rejects refund exceeding total amount paid" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 110, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        json = JSON.parse(response.body)
+        expect(json["error"]).to include("Refund exceeds the amount paid")
+      end
+
+      it "rejects cumulative refunds exceeding total amount paid" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 60, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        json = JSON.parse(response.body)
+        expect(json["error"]).to include("Refund exceeds the amount paid")
+      end
+
+      it "allows multiple refunds within cumulative limit" do
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 40, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 40, kind: "refund" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        order.reload
+        expect(order.total_refunded).to eq(80)
       end
     end
 
@@ -120,17 +188,6 @@ RSpec.describe "Api::V1::Payments", type: :request do
 
         json = JSON.parse(response.body)
         expect(json["error"]).to include("already fully paid")
-      end
-
-      it "rejects refund exceeding amount paid" do
-        post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
-        expect(response).to have_http_status(:created)
-
-        post "/api/v1/orders/#{order.id}/payments", params: { amount: 60, kind: "refund" }, headers: headers
-        expect(response).to have_http_status(:unprocessable_entity)
-
-        json = JSON.parse(response.body)
-        expect(json["error"]).to include("Refund exceeds the amount paid")
       end
 
       it "rejects amount less than 0.01" do
@@ -164,7 +221,7 @@ RSpec.describe "Api::V1::Payments", type: :request do
       end
 
       it "creates audit log entry on refund" do
-        post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         expect {
@@ -173,8 +230,8 @@ RSpec.describe "Api::V1::Payments", type: :request do
 
         audit_log = order.audit_logs.last
         expect(audit_log.event).to eq("refund_recorded")
-        expect(audit_log.from_status).to eq("partially_paid")
-        expect(audit_log.to_status).to eq("partially_paid")
+        expect(audit_log.from_status).to eq("paid")
+        expect(audit_log.to_status).to eq("paid")
         expect(audit_log.details["amount"]).to eq(20)
         expect(audit_log.details["kind"]).to eq("refund")
       end

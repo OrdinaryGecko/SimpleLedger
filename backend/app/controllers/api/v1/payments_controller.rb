@@ -11,12 +11,18 @@ module Api
 
         total = @order.total_amount
         amount_paid = @order.amount_paid
+        total_refunded = @order.total_refunded
 
         if kind == "refund"
-          max_refund = [amount_paid, 0].max
           if amount < 0.01
             return render json: { error: "Amount must be at least 0.01" }, status: :unprocessable_entity
           end
+          unless @order.derive_status == "paid"
+            return render json: {
+              error: "Refunds are only allowed for fully paid orders."
+            }, status: :unprocessable_entity
+          end
+          max_refund = [amount_paid - total_refunded, 0].max
           if amount > max_refund
             return render json: {
               error: "Refund exceeds the amount paid. The maximum allowed refund is ₹#{'%.2f' % max_refund}."

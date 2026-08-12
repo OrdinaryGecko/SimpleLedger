@@ -14,9 +14,11 @@ class Order < ApplicationRecord
   scope :for_user, ->(user) { where(user: user) }
 
   def amount_paid
-    paid = payments.where(kind: "payment").sum(:amount)
-    refunded = payments.where(kind: "refund").sum(:amount)
-    [paid - refunded, 0].max
+    payments.where(kind: "payment").sum(:amount)
+  end
+
+  def total_refunded
+    payments.where(kind: "refund").sum(:amount)
   end
 
   def total_amount

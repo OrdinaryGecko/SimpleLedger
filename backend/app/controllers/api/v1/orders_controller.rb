@@ -70,6 +70,7 @@ module Api
           status: order.derive_status,
           total: order.total_amount.to_f,
           amount_paid: order.amount_paid.to_f,
+          total_refunded: order.total_refunded.to_f,
           amount_due: order.amount_due.to_f,
           locked: order.payments.exists?,
           created_at: order.created_at.iso8601,
@@ -82,7 +83,17 @@ module Api
               unit_price: li.unit_price.to_f
             }
           },
-          payments: order.payments.order(created_at: :asc).map { |p|
+          payments: order.payments.where(kind: "payment").order(created_at: :asc).map { |p|
+            {
+              id: p.id,
+              kind: p.kind,
+              amount: p.amount.to_f,
+              paid_on: p.paid_date&.iso8601,
+              note: p.note,
+              created_at: p.created_at.iso8601
+            }
+          },
+          refunds: order.payments.where(kind: "refund").order(created_at: :asc).map { |p|
             {
               id: p.id,
               kind: p.kind,
