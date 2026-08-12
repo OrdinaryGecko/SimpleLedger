@@ -156,7 +156,7 @@ export function OrderFormPage() {
               <Field
                 type="number"
                 min={0}
-                step="1"
+                step="any"
                 value={item.unit_price}
                 onChange={(e) =>
                   patch(item.key, {
