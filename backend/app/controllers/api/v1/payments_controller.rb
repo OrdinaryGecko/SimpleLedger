@@ -21,7 +21,7 @@ module Api
           end
           if amount > max_refund
             return render json: {
-              error: "Refund exceeds the amount paid. The maximum allowed refund is $#{'%.2f' % max_refund}."
+              error: "Refund exceeds the amount paid. The maximum allowed refund is ₹#{'%.2f' % max_refund}."
             }, status: :unprocessable_entity
           end
         else
@@ -36,7 +36,7 @@ module Api
           end
           if amount > max_payment
             return render json: {
-              error: "Payment exceeds the amount due. The maximum allowed payment is $#{'%.2f' % max_payment}."
+              error: "Payment exceeds the amount due. The maximum allowed payment is ₹#{'%.2f' % max_payment}."
             }, status: :unprocessable_entity
           end
         end

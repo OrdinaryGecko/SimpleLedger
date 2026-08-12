@@ -40,4 +40,8 @@ export const ordersApi = {
   delete: (id) => api.delete(`/orders/${id}`),
 };
 
+export const paymentsApi = {
+  create: (orderId, data) => api.post(`/orders/${orderId}/payments`, data),
+};
+
 export default api;

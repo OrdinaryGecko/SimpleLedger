@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ordersApi } from '../lib/api';
+import { ordersApi, paymentsApi } from '../lib/api';
 import { money, shortDate } from '../lib/utils';
-import { Button, Notice, Panel, StatusTag } from '../components/ui-kit';
+import { Button, Field, Notice, Panel, StatusTag } from '../components/ui-kit';
 
 export function OrderDetailPage() {
   const { id } = useParams();
@@ -10,6 +10,13 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [amount, setAmount] = useState('');
+  const [kind, setKind] = useState('payment');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState('');
+  const [paymentError, setPaymentError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchOrder();
@@ -35,6 +42,37 @@ export function OrderDetailPage() {
       setError(err.response?.data?.error || 'Failed to delete order');
     }
   };
+
+  const submitPayment = async () => {
+    const value = parseFloat(amount);
+    if (!value || value < 0.01) {
+      setPaymentError('Amount must be at least 0.01');
+      return;
+    }
+
+    setSubmitting(true);
+    setPaymentError(null);
+
+    try {
+      await paymentsApi.create(id, {
+        amount: value,
+        kind,
+        paid_date: date,
+        note: note.trim() || null,
+      });
+      setAmount('');
+      setNote('');
+      await fetchOrder();
+    } catch (err) {
+      setPaymentError(err.response?.data?.error || 'Failed to record payment');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const maxAmount = kind === 'refund'
+    ? Math.max(order?.amount_paid || 0, 0)
+    : Math.max(order?.amount_due || 0, 0);
 
   if (loading) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Loading order...</p>;
@@ -109,7 +147,7 @@ export function OrderDetailPage() {
             <dl className="border-t border-border">
               {[
                 ['Total', money(order.total)],
-                ['Paid', money(order.amount_paid)],
+                ['Paid (net of refunds)', money(order.amount_paid)],
                 ['Balance due', money(order.amount_due)],
               ].map(([k, v], idx) => (
                 <div
@@ -148,7 +186,7 @@ export function OrderDetailPage() {
                     <span
                       className={`font-mono tabular-nums ${p.kind === 'refund' ? 'text-destructive' : ''}`}
                     >
-                      {p.kind === 'refund' ? '−' : ''}
+                      {p.kind === 'refund' ? '-' : ''}
                       {money(p.amount)}
                     </span>
                   </li>
@@ -159,6 +197,76 @@ export function OrderDetailPage() {
         </div>
 
         <div className="space-y-8">
+          <Panel title={kind === 'refund' ? 'Issue refund' : 'Record payment'} className="h-fit">
+            <div className="space-y-5 p-5">
+              <div className="flex gap-2">
+                {['payment', 'refund'].map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      setKind(k);
+                      setPaymentError(null);
+                    }}
+                    className={`flex-1 border px-3 py-2 text-[10px] uppercase tracking-[0.16em] ${
+                      kind === k
+                        ? 'border-foreground text-foreground'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+              <Field
+                label="Amount"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                value={amount}
+                disabled={maxAmount === 0}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <Field
+                label="Date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+              <Field
+                label="Note"
+                placeholder="Payment reference, reason..."
+                maxLength={500}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              {paymentError ? <Notice>{paymentError}</Notice> : null}
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  disabled={maxAmount === 0 || submitting}
+                  onClick={submitPayment}
+                >
+                  {submitting ? 'Saving...' : 'Record'}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={maxAmount === 0}
+                  onClick={() => setAmount(String(maxAmount))}
+                >
+                  Max
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {kind === 'refund'
+                  ? `Up to ${money(order.amount_paid)} can be refunded.`
+                  : order.amount_due === 0
+                    ? 'This order is fully settled.'
+                    : `${money(order.amount_due)} remaining.`}
+              </p>
+            </div>
+          </Panel>
+
           {!order.locked ? (
             <Panel title="Manage order" className="h-fit">
               <div className="space-y-3 p-5">
