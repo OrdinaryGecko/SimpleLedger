@@ -85,6 +85,8 @@ export function OrderDetailPage() {
     ? Math.max((order?.amount_paid || 0) - (order?.total_refunded || 0), 0)
     : Math.max(order?.amount_due || 0, 0);
 
+  const isDisabled = maxAmount === 0 || (kind === 'refund' && order?.status !== 'paid');
+
   if (loading) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Loading order...</p>;
   }
@@ -272,13 +274,14 @@ export function OrderDetailPage() {
                 step="any"
                 placeholder="0.00"
                 value={amount}
-                disabled={maxAmount === 0}
+                disabled={isDisabled}
                 onChange={(e) => setAmount(e.target.value)}
               />
               <Field
                 label="Date"
                 type="date"
                 value={date}
+                disabled={isDisabled}
                 onChange={(e) => setDate(e.target.value)}
               />
               <Field
@@ -286,20 +289,21 @@ export function OrderDetailPage() {
                 placeholder="Payment reference, reason..."
                 maxLength={500}
                 value={note}
+                disabled={isDisabled}
                 onChange={(e) => setNote(e.target.value)}
               />
               {paymentError ? <Notice>{paymentError}</Notice> : null}
               <div className="flex gap-2">
                 <Button
                   className="flex-1"
-                  disabled={maxAmount === 0 || submitting}
+                  disabled={isDisabled || submitting}
                   onClick={submitPayment}
                 >
                   {submitting ? 'Saving...' : 'Record'}
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={maxAmount === 0}
+                  disabled={isDisabled}
                   onClick={() => setAmount(String(maxAmount))}
                 >
                   Max
