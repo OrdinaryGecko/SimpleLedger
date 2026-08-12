@@ -6,6 +6,8 @@ module Api
       def index
         orders = current_user.orders.includes(:line_items, :payments).order(created_at: :desc)
         orders = orders.where(status: params[:status]) if params[:status].present?
+        orders = orders.where("created_at >= ?", Date.parse(params[:from]).beginning_of_day) if params[:from].present?
+        orders = orders.where("created_at <= ?", Date.parse(params[:to]).end_of_day) if params[:to].present?
 
         render json: orders.map { |order| order_view(order) }
       end

@@ -33,7 +33,7 @@ export const authApi = {
 };
 
 export const ordersApi = {
-  list: (status) => api.get('/orders', { params: status ? { status } : {} }),
+  list: (filters = {}) => api.get('/orders', { params: filters }),
   get: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
   update: (id, data) => api.patch(`/orders/${id}`, data),
@@ -46,6 +46,27 @@ export const paymentsApi = {
 
 export const auditLogsApi = {
   list: (orderId) => api.get(`/orders/${orderId}/audit_logs`),
+};
+
+export const exportsApi = {
+  downloadCsv: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from) params.set('from', filters.from);
+    if (filters.to) params.set('to', filters.to);
+    if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/v1/orders/export?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders_${filters.from || 'all'}_${filters.to || 'all'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export default api;

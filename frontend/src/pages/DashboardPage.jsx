@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ordersApi } from '../lib/api';
+import { ordersApi, exportsApi } from '../lib/api';
 import { money, shortDate, STATUS_LABEL } from '../lib/utils';
 import { Button, Notice, Panel, Stat, StatusTag } from '../components/ui-kit';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,27 +13,37 @@ export function DashboardPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
     try {
-      const { data } = await ordersApi.list();
+      const params = {};
+      if (filter !== 'all') params.status = filter;
+      if (from) params.from = from;
+      if (to) params.to = to;
+      const { data } = await ordersApi.list(params);
       setOrders(data);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, from, to]);
 
-  const visible = filter === 'all' ? orders : orders.filter((o) => o.derived_status === filter);
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
   const billed = orders.reduce((s, o) => s + o.total, 0);
   const collected = orders.reduce((s, o) => s + o.amount_paid, 0);
   const due = orders.reduce((s, o) => s + o.amount_due, 0);
   const overdue = orders.filter((o) => o.derived_status === 'overdue').length;
+
+  const handleExport = () => {
+    exportsApi.downloadCsv({ from: from || undefined, to: to || undefined, status: filter });
+  };
 
   return (
     <div className="space-y-10">
@@ -51,20 +61,45 @@ export function DashboardPage() {
         <Stat label="Overdue" value={String(overdue).padStart(2, '0')} sub="orders past due" />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`border px-3 py-2 text-[10px] uppercase tracking-[0.16em] transition-colors ${
-              filter === f
-                ? 'border-foreground text-foreground'
-                : 'border-border text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {f === 'all' ? 'All' : STATUS_LABEL[f]}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`border px-3 py-2 text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                filter === f
+                  ? 'border-foreground text-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {f === 'all' ? 'All' : STATUS_LABEL[f]}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-end gap-2">
+          <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="mb-1 block">From</span>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="h-9 border border-border bg-background px-2 font-mono text-xs text-foreground outline-none focus:border-foreground"
+            />
+          </label>
+          <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="mb-1 block">To</span>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="h-9 border border-border bg-background px-2 font-mono text-xs text-foreground outline-none focus:border-foreground"
+            />
+          </label>
+          <Button variant="outline" className="h-9" onClick={handleExport}>
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       <Panel
@@ -83,7 +118,7 @@ export function DashboardPage() {
           </div>
         ) : loading ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground">Loading orders...</p>
-        ) : visible.length === 0 ? (
+        ) : orders.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted-foreground">
             No orders here yet.
           </p>
@@ -101,7 +136,7 @@ export function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((o) => (
+              {orders.map((o) => (
                 <tr key={o.id} className="border-b border-border last:border-0 hover:bg-secondary">
                   <td className="px-5 py-4 font-mono">
                     <Link to={`/orders/${o.id}`} className="hover:text-accent">
