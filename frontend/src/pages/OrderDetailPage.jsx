@@ -113,7 +113,7 @@ export function OrderDetailPage() {
           <h1 className="font-mono text-3xl tracking-tight">
             {String(order.id).padStart(4, '0')}
           </h1>
-          <StatusTag status={order.derived_status} />
+          <StatusTag status={order.status} />
           {order.locked ? (
             <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Locked - payments recorded

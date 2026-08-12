@@ -5,7 +5,7 @@ module Api
 
       def index
         orders = current_user.orders.includes(:line_items, :payments).order(created_at: :desc)
-        orders = orders.where(status: params[:status]) if params[:status].present?
+        orders = orders.select { |order| order.derive_status == params[:status] } if params[:status].present?
         orders = orders.where("created_at >= ?", Date.parse(params[:from]).beginning_of_day) if params[:from].present?
         orders = orders.where("created_at <= ?", Date.parse(params[:to]).end_of_day) if params[:to].present?
 
@@ -63,31 +63,14 @@ module Api
       end
 
       def order_view(order)
-        total = order.line_items.sum { |li| li.quantity * li.unit_price }
-        paid = order.payments.where(kind: "payment").sum(:amount)
-        refunded = order.payments.where(kind: "refund").sum(:amount)
-        amount_paid = [paid - refunded, 0].max
-        amount_due = [total - amount_paid, 0].max
-
-        derived_status = if amount_paid >= total && total > 0
-                           "paid"
-                         elsif order.due_date < Date.current && amount_paid < total
-                           "overdue"
-                         elsif amount_paid > 0
-                           "partially_paid"
-                         else
-                           "pending"
-                         end
-
         {
           id: order.id,
           customer: order.customer_name,
           due_date: order.due_date.iso8601,
-          status: order.status,
-          derived_status: derived_status,
-          total: total.to_f,
-          amount_paid: amount_paid.to_f,
-          amount_due: amount_due.to_f,
+          status: order.derive_status,
+          total: order.total_amount.to_f,
+          amount_paid: order.amount_paid.to_f,
+          amount_due: order.amount_due.to_f,
           locked: order.payments.exists?,
           created_at: order.created_at.iso8601,
           updated_at: order.updated_at.iso8601,

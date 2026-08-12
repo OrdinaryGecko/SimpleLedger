@@ -45,48 +45,58 @@ RSpec.describe "Api::V1::Payments", type: :request do
     context "status transitions" do
       let(:order) { create(:order, :with_line_items, user: user, item_price: 100, item_quantity: 1) }
 
-      it "stays pending with no payments" do
-        expect(order.status).to eq("pending")
+      it "derives pending with no payments" do
+        expect(order.derive_status).to eq("pending")
       end
 
-      it "transitions to partially_paid on partial payment" do
+      it "derives partially_paid on partial payment" do
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.status).to eq("partially_paid")
+        expect(order.derive_status).to eq("partially_paid")
       end
 
-      it "transitions to paid on full payment" do
+      it "derives paid on full payment" do
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.status).to eq("paid")
+        expect(order.derive_status).to eq("paid")
       end
 
-      it "transitions to overdue when past due date and partially paid" do
+      it "derives overdue when past due date and partially paid" do
         order.update!(due_date: Date.current - 1.day)
 
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.status).to eq("overdue")
+        expect(order.derive_status).to eq("overdue")
       end
 
-      it "transitions from partially_paid back to pending after full refund" do
+      it "derives pending after full refund" do
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "payment" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.status).to eq("partially_paid")
+        expect(order.derive_status).to eq("partially_paid")
 
         post "/api/v1/orders/#{order.id}/payments", params: { amount: 50, kind: "refund" }, headers: headers
         expect(response).to have_http_status(:created)
 
         order.reload
-        expect(order.status).to eq("pending")
+        expect(order.derive_status).to eq("pending")
+      end
+
+      it "derives paid even when past due date" do
+        order.update!(due_date: Date.current - 1.day)
+
+        post "/api/v1/orders/#{order.id}/payments", params: { amount: 100, kind: "payment" }, headers: headers
+        expect(response).to have_http_status(:created)
+
+        order.reload
+        expect(order.derive_status).to eq("paid")
       end
     end
 
@@ -164,6 +174,7 @@ RSpec.describe "Api::V1::Payments", type: :request do
         audit_log = order.audit_logs.last
         expect(audit_log.event).to eq("refund_recorded")
         expect(audit_log.from_status).to eq("partially_paid")
+        expect(audit_log.to_status).to eq("partially_paid")
         expect(audit_log.details["amount"]).to eq(20)
         expect(audit_log.details["kind"]).to eq("refund")
       end

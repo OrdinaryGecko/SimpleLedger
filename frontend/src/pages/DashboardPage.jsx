@@ -37,7 +37,7 @@ export function DashboardPage() {
   const billed = orders.reduce((s, o) => s + o.total, 0);
   const collected = orders.reduce((s, o) => s + o.amount_paid, 0);
   const due = orders.reduce((s, o) => s + o.amount_due, 0);
-  const overdue = orders.filter((o) => o.derived_status === 'overdue').length;
+  const overdue = orders.filter((o) => o.status === 'overdue').length;
 
   const handleExport = () => {
     exportsApi.downloadCsv({ from: from || undefined, to: to || undefined, status: filter });
@@ -150,7 +150,7 @@ export function DashboardPage() {
                     {money(o.amount_due)}
                   </td>
                   <td className="px-5 py-4">
-                    <StatusTag status={o.derived_status} />
+                    <StatusTag status={o.status} />
                   </td>
                 </tr>
               ))}
