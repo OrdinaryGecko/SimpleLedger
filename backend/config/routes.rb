@@ -6,7 +6,9 @@ Rails.application.routes.draw do
       post "auth/signup", to: "auth#signup"
       post "auth/login", to: "auth#login"
 
-      resources :orders, only: [:index, :show, :create, :update, :destroy]
+      resources :orders, only: [:index, :show, :create, :update, :destroy] do
+        resources :payments, only: [:create]
+      end
     end
   end
 end
