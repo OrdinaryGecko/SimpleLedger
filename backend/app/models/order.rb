@@ -2,6 +2,7 @@ class Order < ApplicationRecord
   belongs_to :user
   has_many :line_items, dependent: :destroy
   has_many :payments, dependent: :destroy
+  has_many :audit_logs, dependent: :destroy
 
   enum :status, { pending: 0, partially_paid: 1, paid: 2, overdue: 3 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ordersApi, paymentsApi } from '../lib/api';
-import { money, shortDate } from '../lib/utils';
+import { ordersApi, paymentsApi, auditLogsApi } from '../lib/api';
+import { money, shortDate, dateTime } from '../lib/utils';
 import { Button, Field, Notice, Panel, StatusTag } from '../components/ui-kit';
 
 export function OrderDetailPage() {
@@ -10,6 +10,7 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const [amount, setAmount] = useState('');
   const [kind, setKind] = useState('payment');
@@ -20,6 +21,7 @@ export function OrderDetailPage() {
 
   useEffect(() => {
     fetchOrder();
+    fetchAuditLogs();
   }, [id]);
 
   const fetchOrder = async () => {
@@ -30,6 +32,15 @@ export function OrderDetailPage() {
       setError(err.response?.data?.error || 'Failed to load order');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      const { data } = await auditLogsApi.list(id);
+      setAuditLogs(data);
+    } catch (err) {
+      console.error('Failed to load audit logs');
     }
   };
 
@@ -62,7 +73,7 @@ export function OrderDetailPage() {
       });
       setAmount('');
       setNote('');
-      await fetchOrder();
+      await Promise.all([fetchOrder(), fetchAuditLogs()]);
     } catch (err) {
       setPaymentError(err.response?.data?.error || 'Failed to record payment');
     } finally {
@@ -188,6 +199,26 @@ export function OrderDetailPage() {
                     >
                       {p.kind === 'refund' ? '-' : ''}
                       {money(p.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Audit log">
+            {auditLogs.length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-muted-foreground">No activity yet.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {auditLogs.map((a) => (
+                  <li key={a.id} className="flex items-baseline justify-between gap-4 px-5 py-3 text-xs">
+                    <span className="uppercase tracking-[0.16em] text-muted-foreground">
+                      {a.event.replace(/_/g, ' ')}
+                      {a.from_status && a.to_status ? ` · ${a.from_status} → ${a.to_status}` : ''}
+                    </span>
+                    <span className="font-mono text-muted-foreground">
+                      {dateTime(a.created_at)}
                     </span>
                   </li>
                 ))}

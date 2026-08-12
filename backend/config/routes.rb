@@ -8,6 +8,7 @@ Rails.application.routes.draw do
 
       resources :orders, only: [:index, :show, :create, :update, :destroy] do
         resources :payments, only: [:create]
+        resources :audit_logs, only: [:index]
       end
     end
   end

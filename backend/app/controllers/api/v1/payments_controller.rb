@@ -49,7 +49,21 @@ module Api
         )
 
         if payment.save
+          from_status = @order.status
           update_order_status
+          to_status = @order.status
+
+          @order.audit_logs.create!(
+            event: "#{kind}_recorded",
+            from_status: from_status,
+            to_status: to_status,
+            details: {
+              payment_id: payment.id,
+              amount: amount,
+              kind: kind
+            }
+          )
+
           render json: payment_json(payment), status: :created
         else
           render json: { error: payment.errors.full_messages.join(", ") }, status: :unprocessable_entity

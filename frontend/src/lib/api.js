@@ -44,4 +44,8 @@ export const paymentsApi = {
   create: (orderId, data) => api.post(`/orders/${orderId}/payments`, data),
 };
 
+export const auditLogsApi = {
+  list: (orderId) => api.get(`/orders/${orderId}/audit_logs`),
+};
+
 export default api;

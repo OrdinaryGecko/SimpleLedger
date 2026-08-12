@@ -10,9 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_054358) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_061856) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "audit_logs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "details", default: {}
+    t.string "event", null: false
+    t.string "from_status"
+    t.bigint "order_id", null: false
+    t.string "to_status"
+    t.datetime "updated_at", null: false
+    t.index ["event"], name: "index_audit_logs_on_event"
+    t.index ["order_id"], name: "index_audit_logs_on_order_id"
+  end
 
   create_table "line_items", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -58,6 +70,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_054358) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "audit_logs", "orders"
   add_foreign_key "line_items", "orders"
   add_foreign_key "orders", "users"
   add_foreign_key "payments", "orders"
