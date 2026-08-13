@@ -8,7 +8,8 @@ module Api
           amount: params[:amount].to_f,
           kind: params[:kind] || "payment",
           paid_date: params[:paid_date] || Date.current.iso8601,
-          note: params[:note]
+          note: params[:note],
+          idempotency_key: params[:idempotency_key]
         )
 
         if result[:error]

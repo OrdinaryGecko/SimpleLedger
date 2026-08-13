@@ -46,8 +46,14 @@ class Order < ApplicationRecord
     end
   end
 
-  def add_payment(amount:, kind: "payment", paid_date: Date.current, note: nil)
+  def add_payment(amount:, kind: "payment", paid_date: Date.current, note: nil, idempotency_key: nil)
     with_lock do
+      if idempotency_key.present?
+        existing = payments.find_by(idempotency_key: idempotency_key)
+        return { success: true, payment: existing, idempotent_replay: true } if existing
+      end
+
+      reload
       result = validate_payment(amount, kind)
       return result if result[:error]
 
@@ -55,7 +61,8 @@ class Order < ApplicationRecord
         kind: kind,
         amount: amount,
         paid_date: paid_date,
-        note: note
+        note: note,
+        idempotency_key: idempotency_key
       )
 
       from_status = derive_status

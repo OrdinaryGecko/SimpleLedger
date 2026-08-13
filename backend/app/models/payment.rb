@@ -5,4 +5,5 @@ class Payment < ApplicationRecord
 
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :paid_date, presence: true
+  validates :idempotency_key, uniqueness: true, allow_nil: true
 end

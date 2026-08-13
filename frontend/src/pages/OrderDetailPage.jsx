@@ -71,6 +71,7 @@ export function OrderDetailPage() {
         kind,
         paid_date: date,
         note: note.trim() || null,
+        idempotency_key: crypto.randomUUID(),
       });
       setAmount('');
       setNote('');
