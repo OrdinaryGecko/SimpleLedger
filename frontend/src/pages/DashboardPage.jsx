@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ordersApi, exportsApi } from '../lib/api';
 import { money, shortDate, STATUS_LABEL } from '../lib/utils';
 import { Button, Notice, Panel, Stat, StatusTag } from '../components/ui-kit';
+import { DatePicker } from '../components/DatePicker';
 
 const FILTERS = ['all', 'pending', 'partially_paid', 'paid', 'overdue'];
 
@@ -74,24 +75,8 @@ export function DashboardPage() {
           ))}
         </div>
         <div className="flex items-end gap-2">
-          <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span className="mb-1 block">From</span>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="h-9 border border-border bg-background px-2 font-mono text-xs text-foreground outline-none focus:border-foreground"
-            />
-          </label>
-          <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span className="mb-1 block">To</span>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="h-9 border border-border bg-background px-2 font-mono text-xs text-foreground outline-none focus:border-foreground"
-            />
-          </label>
+          <DatePicker label="From" value={from} onChange={setFrom} size="sm" />
+          <DatePicker label="To" value={to} onChange={setTo} size="sm" />
           <Button variant="outline" className="h-9" onClick={handleExport}>
             Export CSV
           </Button>

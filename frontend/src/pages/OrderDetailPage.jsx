@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ordersApi, paymentsApi, auditLogsApi } from '../lib/api';
 import { money, shortDate, dateTime } from '../lib/utils';
 import { Button, Field, Notice, Panel, StatusTag } from '../components/ui-kit';
+import { DatePicker } from '../components/DatePicker';
 
 export function OrderDetailPage() {
   const { id } = useParams();
@@ -277,12 +278,11 @@ export function OrderDetailPage() {
                 disabled={isDisabled}
                 onChange={(e) => setAmount(e.target.value)}
               />
-              <Field
+              <DatePicker
                 label="Date"
-                type="date"
                 value={date}
+                onChange={setDate}
                 disabled={isDisabled}
-                onChange={(e) => setDate(e.target.value)}
               />
               <Field
                 label="Note"

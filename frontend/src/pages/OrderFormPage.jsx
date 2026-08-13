@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ordersApi, configApi } from '../lib/api';
 import { money, lineAmount, subtotal } from '../lib/utils';
 import { Button, Field, Notice, Panel } from '../components/ui-kit';
+import { DatePicker } from '../components/DatePicker';
 
 const blank = () => ({
   key: Math.random().toString(36).slice(2),
@@ -124,11 +125,10 @@ export function OrderFormPage() {
             value={customer}
             onChange={(e) => setCustomer(e.target.value)}
           />
-          <Field
+          <DatePicker
             label="Due date"
-            type="date"
             value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+            onChange={setDueDate}
           />
         </div>
       </Panel>
