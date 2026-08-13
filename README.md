@@ -6,6 +6,7 @@ A web application for creating orders with line items, recording payments, and v
 
 ## Prerequisites
 
+- Docker and Docker Compose
 - Ruby 3.4.7
 - Rails 8.1.2
 - PostgreSQL
@@ -14,7 +15,20 @@ A web application for creating orders with line items, recording payments, and v
 
 ## Setup
 
-### Backend
+### Quick Start (Docker)
+
+```bash
+docker compose up
+```
+
+This starts:
+- PostgreSQL on port 5432
+- Rails backend on port 3001
+- Frontend on port 5173
+
+### Manual Setup
+
+#### Backend
 
 ```bash
 cd backend

@@ -14,11 +14,8 @@ function Header() {
   return (
     <header className="border-b border-border">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link to="/" className="flex items-baseline gap-3">
-          <span className="text-sm font-semibold uppercase tracking-[0.3em]">Ledger</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Orders &amp; Payments
-          </span>
+        <Link to="/" className="text-sm font-semibold uppercase tracking-[0.3em]">
+          SimpleLedger
         </Link>
         <nav className="flex items-center gap-6 text-[11px] uppercase tracking-[0.2em]">
           {user ? (
