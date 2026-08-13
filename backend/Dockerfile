@@ -16,9 +16,7 @@ RUN bundle install
 
 COPY . .
 
-RUN bundle exec rails assets:precompile 2>/dev/null || true
-
 EXPOSE $PORT
 
 ENTRYPOINT ["./bin/docker-entrypoint"]
-CMD ["bin/rails", "server", "-b", "0.0.0.0", "-p", "$PORT"]
+CMD ["sh", "-c", "bin/rails server -b 0.0.0.0 -p $PORT"]
