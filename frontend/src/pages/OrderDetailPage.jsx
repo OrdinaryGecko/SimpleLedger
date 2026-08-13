@@ -148,10 +148,10 @@ export function OrderDetailPage() {
                     <td className="px-5 py-4">{i.description}</td>
                     <td className="px-5 py-4 text-right font-mono tabular-nums">{i.quantity}</td>
                     <td className="px-5 py-4 text-right font-mono tabular-nums">
-                      {money(i.unit_price)}
+                      {i.unit_price_formatted}
                     </td>
                     <td className="px-5 py-4 text-right font-mono tabular-nums">
-                      {money(i.quantity * i.unit_price)}
+                      {i.line_total_formatted}
                     </td>
                   </tr>
                 ))}
@@ -159,10 +159,10 @@ export function OrderDetailPage() {
             </table>
             <dl className="border-t border-border">
               {[
-                ['Total', money(order.total)],
-                ['Paid', money(order.amount_paid)],
-                order.total_refunded > 0 ? ['Refunded', money(order.total_refunded)] : null,
-                ['Balance due', money(order.amount_due)],
+                ['Total', order.total_formatted],
+                ['Paid', order.amount_paid_formatted],
+                order.total_refunded > 0 ? ['Refunded', order.total_refunded_formatted] : null,
+                ['Balance due', order.amount_due_formatted],
               ].filter(Boolean).map(([k, v], idx, arr) => (
                 <div
                   key={k}
@@ -198,7 +198,7 @@ export function OrderDetailPage() {
                       {p.note ? ` · ${p.note}` : ''}
                     </span>
                     <span className="font-mono tabular-nums">
-                      {money(p.amount)}
+                      {p.amount_formatted}
                     </span>
                   </li>
                 ))}
@@ -217,7 +217,7 @@ export function OrderDetailPage() {
                       {r.note ? ` · ${r.note}` : ''}
                     </span>
                     <span className="font-mono tabular-nums text-destructive">
-                      -{money(r.amount)}
+                      -{r.amount_formatted}
                     </span>
                   </li>
                 ))}
@@ -313,31 +313,48 @@ export function OrderDetailPage() {
                 {kind === 'refund'
                   ? order.status !== 'paid'
                     ? 'Refunds are only allowed for fully paid orders.'
-                    : `Up to ${money(maxAmount)} can be refunded.`
+                    : `Up to ${money(maxAmount, order.currency_symbol)} can be refunded.`
                   : order.amount_due === 0
                     ? 'This order is fully settled.'
-                    : `${money(order.amount_due)} remaining.`}
+                    : `${order.amount_due_formatted} remaining.`}
               </p>
             </div>
           </Panel>
 
-          {!order.locked ? (
-            <Panel title="Manage order" className="h-fit">
+          <Panel title="Manage order" className="h-fit">
               <div className="space-y-3 p-5">
-                <Link to={`/orders/${id}/edit`} className="block">
-                  <Button variant="outline" className="w-full">
-                    Edit order
+                {order.locked ? (
+                  <div className="group relative">
+                    <Button variant="outline" className="w-full" disabled>
+                      Edit order
+                    </Button>
+                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap border border-border bg-background px-3 py-2 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                      Orders with recorded payments cannot be edited or deleted.
+                    </span>
+                  </div>
+                ) : (
+                  <Link to={`/orders/${id}/edit`} className="block">
+                    <Button variant="outline" className="w-full">
+                      Edit order
+                    </Button>
+                  </Link>
+                )}
+                {order.locked ? (
+                  <div className="group relative">
+                    <Button variant="outline" className="w-full" disabled>
+                      Delete order
+                    </Button>
+                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap border border-border bg-background px-3 py-2 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                      Orders with recorded payments cannot be edited or deleted.
+                    </span>
+                  </div>
+                ) : (
+                  <Button variant="outline" className="w-full" onClick={handleDelete}>
+                    Delete order
                   </Button>
-                </Link>
-                <Button variant="outline" className="w-full" onClick={handleDelete}>
-                  Delete order
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Orders with recorded payments cannot be deleted or edited.
-                </p>
+                )}
               </div>
             </Panel>
-          ) : null}
         </div>
       </div>
     </div>

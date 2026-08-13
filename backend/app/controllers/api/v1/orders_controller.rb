@@ -63,41 +63,61 @@ module Api
       end
 
       def order_view(order)
+        total = order.total_amount.to_f
+        amount_paid = order.amount_paid.to_f
+        total_refunded = order.total_refunded.to_f
+        amount_due = order.amount_due.to_f
+
         {
           id: order.id,
           customer: order.customer_name,
+          currency: Money.default_currency.iso_code,
+          currency_symbol: Money.default_currency.symbol,
           due_date: order.due_date.iso8601,
           status: order.derive_status,
-          total: order.total_amount.to_f,
-          amount_paid: order.amount_paid.to_f,
-          total_refunded: order.total_refunded.to_f,
-          amount_due: order.amount_due.to_f,
+          total: total,
+          total_formatted: Money.new((total * 100).round).format,
+          amount_paid: amount_paid,
+          amount_paid_formatted: Money.new((amount_paid * 100).round).format,
+          total_refunded: total_refunded,
+          total_refunded_formatted: Money.new((total_refunded * 100).round).format,
+          amount_due: amount_due,
+          amount_due_formatted: Money.new((amount_due * 100).round).format,
           locked: order.payments.exists?,
           created_at: order.created_at.iso8601,
           updated_at: order.updated_at.iso8601,
           items: order.line_items.map { |li|
+            unit_price = li.unit_price.to_f
+            line_total = (li.quantity * li.unit_price).to_f
             {
               id: li.id,
               description: li.description,
               quantity: li.quantity,
-              unit_price: li.unit_price.to_f
+              unit_price: unit_price,
+              unit_price_formatted: Money.new((unit_price * 100).round).format,
+              line_total: line_total,
+              line_total_formatted: Money.new((line_total * 100).round).format
             }
           },
           payments: order.payments.where(kind: "payment").order(created_at: :asc).map { |p|
+            amount = p.amount.to_f
             {
               id: p.id,
               kind: p.kind,
-              amount: p.amount.to_f,
+              amount: amount,
+              amount_formatted: Money.new((amount * 100).round).format,
               paid_on: p.paid_date&.iso8601,
               note: p.note,
               created_at: p.created_at.iso8601
             }
           },
           refunds: order.payments.where(kind: "refund").order(created_at: :asc).map { |p|
+            amount = p.amount.to_f
             {
               id: p.id,
               kind: p.kind,
-              amount: p.amount.to_f,
+              amount: amount,
+              amount_formatted: Money.new((amount * 100).round).format,
               paid_on: p.paid_date&.iso8601,
               note: p.note,
               created_at: p.created_at.iso8601

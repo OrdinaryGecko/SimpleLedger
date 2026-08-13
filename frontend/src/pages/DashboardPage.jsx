@@ -34,6 +34,7 @@ export function DashboardPage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  const currencySymbol = orders[0]?.currency_symbol || '$';
   const billed = orders.reduce((s, o) => s + o.total, 0);
   const collected = orders.reduce((s, o) => s + o.amount_paid, 0);
   const due = orders.reduce((s, o) => s + o.amount_due, 0);
@@ -50,9 +51,9 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total billed" value={money(billed)} sub={`${orders.length} orders`} />
-        <Stat label="Collected" value={money(collected)} />
-        <Stat label="Outstanding" value={money(due)} />
+        <Stat label="Total billed" value={money(billed, currencySymbol)} sub={`${orders.length} orders`} />
+        <Stat label="Collected" value={money(collected, currencySymbol)} />
+        <Stat label="Outstanding" value={money(due, currencySymbol)} />
         <Stat label="Overdue" value={String(overdue).padStart(2, '0')} sub="orders past due" />
       </div>
 
@@ -142,12 +143,12 @@ export function DashboardPage() {
                   <td className="px-5 py-4 font-mono text-muted-foreground">
                     {shortDate(o.due_date)}
                   </td>
-                  <td className="px-5 py-4 text-right font-mono tabular-nums">{money(o.total)}</td>
+                  <td className="px-5 py-4 text-right font-mono tabular-nums">{o.total_formatted}</td>
                   <td className="px-5 py-4 text-right font-mono tabular-nums text-muted-foreground">
-                    {money(o.amount_paid)}
+                    {o.amount_paid_formatted}
                   </td>
                   <td className="px-5 py-4 text-right font-mono tabular-nums">
-                    {money(o.amount_due)}
+                    {o.amount_due_formatted}
                   </td>
                   <td className="px-5 py-4">
                     <StatusTag status={o.status} />

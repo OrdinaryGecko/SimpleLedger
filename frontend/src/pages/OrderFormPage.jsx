@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ordersApi } from '../lib/api';
+import { ordersApi, configApi } from '../lib/api';
 import { money, lineAmount, subtotal } from '../lib/utils';
 import { Button, Field, Notice, Panel } from '../components/ui-kit';
 
@@ -24,18 +24,33 @@ export function OrderFormPage() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [currencySymbol, setCurrencySymbol] = useState('$');
 
   useEffect(() => {
     if (isEdit && !loaded) {
       loadOrder();
+    } else if (!isEdit && !loaded) {
+      loadConfig();
     }
   }, [id, loaded]);
+
+  const loadConfig = async () => {
+    try {
+      const { data } = await configApi.get();
+      setCurrencySymbol(data.currency_symbol);
+      setLoaded(true);
+    } catch (err) {
+      setCurrencySymbol('$');
+      setLoaded(true);
+    }
+  };
 
   const loadOrder = async () => {
     try {
       const { data } = await ordersApi.get(id);
       setCustomer(data.customer);
       setDueDate(data.due_date);
+      setCurrencySymbol(data.currency_symbol);
       setItems(
         data.items.map((i) => ({
           key: String(i.id),
@@ -165,7 +180,7 @@ export function OrderFormPage() {
                 }
               />
               <div className="text-right font-mono text-sm tabular-nums">
-                {money(lineAmount(item))}
+                {money(lineAmount(item), currencySymbol)}
               </div>
               <button
                 onClick={() => setItems((p) => (p.length > 1 ? p.filter((i) => i.key !== item.key) : p))}
@@ -179,7 +194,7 @@ export function OrderFormPage() {
         </div>
         <div className="flex items-center justify-between border-t border-border px-5 py-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total</span>
-          <span className="font-mono text-xl tabular-nums">{money(total)}</span>
+          <span className="font-mono text-xl tabular-nums">{money(total, currencySymbol)}</span>
         </div>
       </Panel>
 

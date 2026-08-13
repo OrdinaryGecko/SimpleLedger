@@ -32,6 +32,10 @@ export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
 };
 
+export const configApi = {
+  get: () => api.get('/config'),
+};
+
 export const ordersApi = {
   list: (filters = {}) => api.get('/orders', { params: filters }),
   get: (id) => api.get(`/orders/${id}`),

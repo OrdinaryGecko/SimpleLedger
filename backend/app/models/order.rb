@@ -91,7 +91,7 @@ class Order < ApplicationRecord
       end
       max_refund = [amount_paid - total_refunded, 0].max
       if amount > max_refund
-        return { error: "Refund exceeds the amount paid. The maximum allowed refund is ₹#{'%.2f' % max_refund}." }
+        return { error: "Refund exceeds the amount paid. The maximum allowed refund is #{Money.new((max_refund * 100).round).format}." }
       end
     else
       max_payment = [total_amount - amount_paid, 0].max
@@ -99,7 +99,7 @@ class Order < ApplicationRecord
         return { error: "This order is already fully paid, so no further payment can be recorded." }
       end
       if amount > max_payment
-        return { error: "Payment exceeds the amount due. The maximum allowed payment is ₹#{'%.2f' % max_payment}." }
+        return { error: "Payment exceeds the amount due. The maximum allowed payment is #{Money.new((max_payment * 100).round).format}." }
       end
     end
 

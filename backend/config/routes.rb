@@ -6,6 +6,8 @@ Rails.application.routes.draw do
       post "auth/signup", to: "auth#signup"
       post "auth/login", to: "auth#login"
 
+      get "config", to: "config#index"
+
       get "orders/export", to: "exports#index"
 
       resources :orders, only: [:index, :show, :create, :update, :destroy] do
