@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${import.meta.env.VITE_API_URL || ''}/api/v1`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -59,7 +59,8 @@ export const exportsApi = {
     if (filters.to) params.set('to', filters.to);
     if (filters.status && filters.status !== 'all') params.set('status', filters.status);
     const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/orders/export?${params}`, {
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    const res = await fetch(`${baseUrl}/api/v1/orders/export?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Export failed');
