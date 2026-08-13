@@ -2,6 +2,11 @@
 
 A web application for creating orders with line items, recording payments, and viewing a dashboard with order status and amounts due.
 
+## Demo
+
+- Live app: [https://simpleledger-uodh.onrender.com](https://simpleledger-uodh.onrender.com)
+- Video walkthrough: [https://www.youtube.com/watch?v=LKbLmpC5Ue8](https://www.youtube.com/watch?v=LKbLmpC5Ue8)
+
 ---
 
 ## Prerequisites
