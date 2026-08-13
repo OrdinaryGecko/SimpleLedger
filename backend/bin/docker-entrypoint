@@ -2,8 +2,4 @@
 set -e
 
 rm -f /rails/tmp/pids/server.pid
-
-echo "Running migrations..."
-bundle exec rails db:create db:migrate
-
 exec "$@"
