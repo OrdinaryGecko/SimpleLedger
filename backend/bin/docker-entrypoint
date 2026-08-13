@@ -1,3 +1,9 @@
 #!/bin/bash
+set -e
+
 rm -f /rails/tmp/pids/server.pid
-exec bin/rails server -b 0.0.0.0 -p 3001
+
+echo "Running migrations..."
+bundle exec rails db:create db:migrate
+
+exec "$@"
