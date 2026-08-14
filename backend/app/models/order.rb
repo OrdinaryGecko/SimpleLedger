@@ -6,6 +6,7 @@ class Order < ApplicationRecord
 
   validates :customer_name, presence: true
   validates :due_date, presence: true
+  validate :total_must_be_positive, on: :create
 
   accepts_nested_attributes_for :line_items, allow_destroy: true, reject_if: :all_blank
 
@@ -116,5 +117,11 @@ class Order < ApplicationRecord
   def compute_totals
     self.subtotal = line_items.sum { |li| li.quantity * li.unit_price }
     self.total = subtotal
+  end
+
+  def total_must_be_positive
+    if line_items.empty? || line_items.sum { |li| li.quantity * li.unit_price } <= 0
+      errors.add(:base, "Order total must be greater than zero")
+    end
   end
 end

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
@@ -10,6 +10,8 @@ import './index.css';
 
 function Header() {
   const { user, logout } = useAuth();
+  const { pathname } = useLocation();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   return (
     <header className="border-b border-border">
@@ -42,14 +44,14 @@ function Header() {
                 Sign out
               </button>
             </>
-          ) : (
+          ) : !isAuthPage ? (
             <Link
               to="/login"
               className="text-muted-foreground hover:text-foreground"
             >
               Sign in
             </Link>
-          )}
+          ) : null}
         </nav>
       </div>
     </header>

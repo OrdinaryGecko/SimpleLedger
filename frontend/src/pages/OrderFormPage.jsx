@@ -70,7 +70,7 @@ export function OrderFormPage() {
     setItems((prev) => prev.map((i) => (i.key === key ? { ...i, ...next } : i)));
 
   const total = subtotal(items);
-  const valid = customer.trim() !== '' && items.some((i) => i.description.trim() && i.quantity >= 1);
+  const valid = customer.trim() !== '' && items.some((i) => i.description.trim() && i.quantity >= 1) && total > 0;
 
   const submit = async () => {
     setBusy(true);

@@ -20,6 +20,11 @@ module Api
           orders = orders.select { |order| order.derive_status == params[:status] }
         end
 
+        if orders.empty?
+          render json: { error: "No orders to export for the selected filters" }, status: :unprocessable_entity
+          return
+        end
+
         csv_data = generate_csv(orders)
 
         send_data csv_data,

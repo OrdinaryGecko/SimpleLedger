@@ -17,6 +17,7 @@ export function DashboardPage() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = {};
       if (filter !== 'all') params.status = filter;
@@ -41,8 +42,13 @@ export function DashboardPage() {
   const due = orders.reduce((s, o) => s + o.amount_due, 0);
   const overdue = orders.filter((o) => o.status === 'overdue').length;
 
-  const handleExport = () => {
-    exportsApi.downloadCsv({ from: from || undefined, to: to || undefined, status: filter });
+  const handleExport = async () => {
+    setError(null);
+    try {
+      await exportsApi.downloadCsv({ from: from || undefined, to: to || undefined, status: filter });
+    } catch (err) {
+      setError(err.message || 'Failed to export orders');
+    }
   };
 
   return (

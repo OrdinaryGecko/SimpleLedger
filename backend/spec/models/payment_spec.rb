@@ -28,7 +28,8 @@ RSpec.describe Payment, type: :model do
 
   describe 'associations' do
     it 'belongs to order' do
-      payment = create(:payment)
+      order = create(:order, :with_line_items, item_price: 100, item_quantity: 1)
+      payment = create(:payment, order: order)
       expect(payment.order).to be_present
     end
   end
