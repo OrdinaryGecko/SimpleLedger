@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ordersApi, exportsApi } from '../lib/api';
 import { money, shortDate, STATUS_LABEL } from '../lib/utils';
 import { Button, Notice, Panel, Stat, StatusTag } from '../components/ui-kit';
 import { DatePicker } from '../components/DatePicker';
 
 const FILTERS = ['all', 'pending', 'partially_paid', 'paid', 'overdue'];
+const PAGE_SIZE = 8;
 
 export function DashboardPage() {
   const [filter, setFilter] = useState('all');
@@ -14,6 +16,7 @@ export function DashboardPage() {
   const [error, setError] = useState(null);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [page, setPage] = useState(1);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -36,27 +39,40 @@ export function DashboardPage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [filter, from, to]);
+
   const currencySymbol = orders[0]?.currency_symbol || '$';
   const billed = orders.reduce((s, o) => s + o.total, 0);
   const collected = orders.reduce((s, o) => s + o.amount_paid, 0);
   const due = orders.reduce((s, o) => s + o.amount_due, 0);
   const overdue = orders.filter((o) => o.status === 'overdue').length;
 
+  const pageCount = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const paged = orders.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+
   const handleExport = async () => {
     setError(null);
+    if (orders.length === 0) {
+      toast.error('Nothing to export', {
+        description: 'No orders match the current filters.',
+      });
+      return;
+    }
     try {
       await exportsApi.downloadCsv({ from: from || undefined, to: to || undefined, status: filter });
+      toast.success('Export started', {
+        description: `${orders.length} order${orders.length === 1 ? '' : 's'} - CSV download will begin shortly.`,
+      });
     } catch (err) {
-      setError(err.message || 'Failed to export orders');
+      toast.error('Export failed', { description: err.message || 'Failed to export orders' });
     }
   };
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-3xl font-medium tracking-tight">Dashboard</h1>
-      </div>
-
       <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Total billed" value={money(billed, currencySymbol)} sub={`${orders.length} orders`} />
         <Stat label="Collected" value={money(collected, currencySymbol)} />
@@ -110,44 +126,73 @@ export function DashboardPage() {
             No orders here yet.
           </p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                <th className="px-5 py-3 font-normal">Order</th>
-                <th className="px-5 py-3 font-normal">Customer</th>
-                <th className="px-5 py-3 font-normal">Due date</th>
-                <th className="px-5 py-3 text-right font-normal">Total</th>
-                <th className="px-5 py-3 text-right font-normal">Paid</th>
-                <th className="px-5 py-3 text-right font-normal">Balance</th>
-                <th className="px-5 py-3 font-normal">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id} className="border-b border-border last:border-0 hover:bg-secondary">
-                  <td className="px-5 py-4 font-mono">
-                    <Link to={`/orders/${o.id}`} className="hover:text-accent">
-                      {String(o.id).padStart(4, '0')}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-4">{o.customer}</td>
-                  <td className="px-5 py-4 font-mono text-muted-foreground">
-                    {shortDate(o.due_date)}
-                  </td>
-                  <td className="px-5 py-4 text-right font-mono tabular-nums">{o.total_formatted}</td>
-                  <td className="px-5 py-4 text-right font-mono tabular-nums text-muted-foreground">
-                    {o.amount_paid_formatted}
-                  </td>
-                  <td className="px-5 py-4 text-right font-mono tabular-nums">
-                    {o.amount_due_formatted}
-                  </td>
-                  <td className="px-5 py-4">
-                    <StatusTag status={o.status} />
-                  </td>
+          <>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <th className="px-5 py-3 font-normal">Order</th>
+                  <th className="px-5 py-3 font-normal">Customer</th>
+                  <th className="px-5 py-3 font-normal">Due date</th>
+                  <th className="px-5 py-3 text-right font-normal">Total</th>
+                  <th className="px-5 py-3 text-right font-normal">Paid</th>
+                  <th className="px-5 py-3 text-right font-normal">Balance</th>
+                  <th className="px-5 py-3 font-normal">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paged.map((o) => (
+                  <tr key={o.id} className="border-b border-border last:border-0 hover:bg-secondary">
+                    <td className="px-5 py-4 font-mono">
+                      <Link to={`/orders/${o.id}`} className="hover:text-accent">
+                        {String(o.id).padStart(4, '0')}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-4">{o.customer}</td>
+                    <td className="px-5 py-4 font-mono text-muted-foreground">
+                      {shortDate(o.due_date)}
+                    </td>
+                    <td className="px-5 py-4 text-right font-mono tabular-nums">{o.total_formatted}</td>
+                    <td className="px-5 py-4 text-right font-mono tabular-nums text-muted-foreground">
+                      {o.amount_paid_formatted}
+                    </td>
+                    <td className="px-5 py-4 text-right font-mono tabular-nums">
+                      {o.amount_due_formatted}
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusTag status={o.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                {(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, orders.length)} of{' '}
+                {orders.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="h-8 px-3"
+                  disabled={current <= 1}
+                  onClick={() => setPage(current - 1)}
+                >
+                  Prev
+                </Button>
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {current} / {pageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  className="h-8 px-3"
+                  disabled={current >= pageCount}
+                  onClick={() => setPage(current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </Panel>
     </div>

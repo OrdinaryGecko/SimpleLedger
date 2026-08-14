@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ordersApi, configApi } from '../lib/api';
 import { money, lineAmount, subtotal } from '../lib/utils';
 import { Button, Field, Notice, Panel } from '../components/ui-kit';
@@ -91,9 +92,11 @@ export function OrderFormPage() {
 
       if (isEdit) {
         await ordersApi.update(id, payload);
+        toast.success('Order updated', { description: `${customer.trim()} - ${money(total, currencySymbol)}` });
         navigate(`/orders/${id}`);
       } else {
         const { data } = await ordersApi.create(payload);
+        toast.success('Order created', { description: `${customer.trim()} - ${money(total, currencySymbol)}` });
         navigate(`/orders/${data.id}`);
       }
     } catch (err) {

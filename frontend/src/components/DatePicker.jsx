@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { CalendarDays } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -105,7 +106,7 @@ export function DatePicker({ label: fieldLabel, value, onChange, disabled, class
         )}
       >
         <span>{value ? label(value) : 'Select date'}</span>
-        <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Cal</span>
+        <CalendarDays className="shrink-0 text-muted-foreground" size={size === 'sm' ? 14 : 16} strokeWidth={1.5} />
       </button>
 
       {open ? (

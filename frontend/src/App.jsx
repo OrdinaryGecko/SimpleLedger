@@ -6,6 +6,7 @@ import { SignupPage } from './pages/SignupPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { OrderFormPage } from './pages/OrderFormPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
+import { Toaster } from './components/Toaster';
 import './index.css';
 
 function Header() {
@@ -126,6 +127,7 @@ export default function App() {
           <main className="mx-auto max-w-6xl px-6 py-10">
             <AppRoutes />
           </main>
+          <Toaster />
         </div>
       </AuthProvider>
     </BrowserRouter>

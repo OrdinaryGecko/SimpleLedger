@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ordersApi, paymentsApi, auditLogsApi } from '../lib/api';
 import { money, shortDate, dateTime } from '../lib/utils';
 import { Button, Field, Notice, Panel, StatusTag } from '../components/ui-kit';
 import { DatePicker } from '../components/DatePicker';
+import { TooltipHint } from '../components/TooltipHint';
 
 export function OrderDetailPage() {
   const { id } = useParams();
@@ -49,8 +51,10 @@ export function OrderDetailPage() {
     if (!confirm('Are you sure you want to delete this order?')) return;
     try {
       await ordersApi.delete(id);
+      toast.success('Order deleted');
       navigate('/dashboard');
     } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete order');
       setError(err.response?.data?.error || 'Failed to delete order');
     }
   };
@@ -73,11 +77,16 @@ export function OrderDetailPage() {
         note: note.trim() || null,
         idempotency_key: crypto.randomUUID(),
       });
+      toast.success(kind === 'refund' ? 'Refund issued' : 'Payment recorded', {
+        description: money(value, order.currency_symbol),
+      });
       setAmount('');
       setNote('');
       await Promise.all([fetchOrder(), fetchAuditLogs()]);
     } catch (err) {
-      setPaymentError(err.response?.data?.error || 'Failed to record payment');
+      const msg = err.response?.data?.error || 'Failed to record payment';
+      toast.error(msg);
+      setPaymentError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -323,39 +332,34 @@ export function OrderDetailPage() {
           </Panel>
 
           <Panel title="Manage order" className="h-fit">
-              <div className="space-y-3 p-5">
-                {order.locked ? (
-                  <div className="group relative">
+            <div className="space-y-3 p-5">
+              {order.locked ? (
+                <>
+                  <TooltipHint label="Orders with recorded payments cannot be edited or deleted.">
                     <Button variant="outline" className="w-full" disabled>
                       Edit order
                     </Button>
-                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap border border-border bg-background px-3 py-2 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                      Orders with recorded payments cannot be edited or deleted.
-                    </span>
-                  </div>
-                ) : (
+                  </TooltipHint>
+                  <TooltipHint label="Orders with recorded payments cannot be edited or deleted.">
+                    <Button variant="outline" className="w-full" disabled>
+                      Delete order
+                    </Button>
+                  </TooltipHint>
+                </>
+              ) : (
+                <>
                   <Link to={`/orders/${id}/edit`} className="block">
                     <Button variant="outline" className="w-full">
                       Edit order
                     </Button>
                   </Link>
-                )}
-                {order.locked ? (
-                  <div className="group relative">
-                    <Button variant="outline" className="w-full" disabled>
-                      Delete order
-                    </Button>
-                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap border border-border bg-background px-3 py-2 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                      Orders with recorded payments cannot be edited or deleted.
-                    </span>
-                  </div>
-                ) : (
                   <Button variant="outline" className="w-full" onClick={handleDelete}>
                     Delete order
                   </Button>
-                )}
-              </div>
-            </Panel>
+                </>
+              )}
+            </div>
+          </Panel>
         </div>
       </div>
     </div>
